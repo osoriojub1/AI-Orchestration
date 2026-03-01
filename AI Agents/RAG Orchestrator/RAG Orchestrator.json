@@ -1,0 +1,314 @@
+{
+  "name": "RAG Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -80,
+        0
+      ],
+      "id": "fa940b1d-8a17-4b59-95de-37ed343b853e",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You receive a new task: {{ $json.query }}",
+        "options": {
+          "systemMessage": "=You are the RAG Orchestrator AI Agent.\n\nYour responsibility is to:\n\nExecute all steps in the received payload sequentially, in order of step_number.\n\nUse the correct tool for each step (Document Retriever or Summarizer).\n\nUpdate the task status table via the UPDATE TASK STATUS tool immediately after each step.\n\nReturn one final success JSON only after all steps are completed successfully.\n\nInput\n{\n  \"task_id\": \"<task_id>\",\n  \"steps\": [\n    { \"step_number\": 1, \"task_name\": \"<step_name>\" },\n    { \"step_number\": 2, \"task_name\": \"<step_name>\" }\n  ],\n  \"ai_agent\": \"RAG Orchestrator\"\n}\nExecution Rules\n\nIterate sequentially through all steps (step_number ascending).\n\nClassify each step:\n\nIf the step is retrieving documents/data → use Document Retriever\n\nIf the step is summarizing text/data → use Summarizer\n\nExecute the step with the assigned tool.\n\nImmediately after execution, update the task status table:\n\nUse UPDATE TASK STATUS.\n\nLocate the row by task_id and task_name.\n\nSet status → \"success\" if step succeeded, or \"error\" if it failed.\n\nStop execution if any step fails, and return an error JSON:\n\n{\n  \"task_id\": \"<task_id>\",\n  \"status\": \"error\",\n  \"failed_step\": <step_number>,\n  \"message\": \"<reason>\"\n}\n\nAfter all steps succeed, return final success JSON:\n\n{\n  \"task_id\": \"<task_id>\",\n  \"status\": \"success\",\n  \"message\": \"All steps completed successfully\"\n}\nStrict Rules\n\nDo not return per-step success JSON.\n\nAlways return one structured JSON at the end.\n\nInclude task_id in all responses.\n\nDo not output explanations, markdown, or plain text.\n\nExecute steps strictly in order.\n\nUse only the tools provided for each step.\n\nUpdate the status table immediately after each step."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "79051130-5dd4-43ec-bef7-6650961536b0",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "vertex-ai-488112",
+          "mode": "list",
+          "cachedResultName": "Vertex AI"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleVertex",
+      "typeVersion": 1,
+      "position": [
+        80,
+        208
+      ],
+      "id": "d4144755-6cc3-4fd2-8714-d97f97bf01cc",
+      "name": "Google Vertex Chat Model",
+      "credentials": {
+        "googleApi": {
+          "id": "o67L5Y5zuRfyoxMg",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Report Retreiver",
+        "workflowId": {
+          "__rl": true,
+          "value": "MkHF3Nlhv20o7bTS",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/MkHF3Nlhv20o7bTS",
+          "cachedResultName": "Document Retriever"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        608,
+        224
+      ],
+      "id": "b5657780-ae2e-4bec-aa0a-853670519a90",
+      "name": "Call 'Document Retriever'"
+    },
+    {
+      "parameters": {
+        "description": "Summarizer",
+        "workflowId": {
+          "__rl": true,
+          "value": "6LbdQzkxP3dWeGsH",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/6LbdQzkxP3dWeGsH",
+          "cachedResultName": "Report Summarizer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        768,
+        224
+      ],
+      "id": "065f91b7-9350-43c3-9869-94902fde9e0b",
+      "name": "Call 'Summarizer'"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "UPDATE TASK STATUS",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "KRQnpJ6TmpgouLEu",
+          "mode": "list",
+          "cachedResultName": "Task Modulator",
+          "cachedResultUrl": "/projects/K28LUR3COvnOlr1i/datatables/KRQnpJ6TmpgouLEu"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "task_id",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Value', ``, 'string') }}"
+            },
+            {
+              "keyName": "ai_agent",
+              "keyValue": "RAG Orchestrator"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('status', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "task_id",
+              "displayName": "task_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "step_number",
+              "displayName": "step_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "task_name",
+              "displayName": "task_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "ai_agent",
+              "displayName": "ai_agent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        464,
+        224
+      ],
+      "id": "fd76651b-10f6-4277-9d8a-d252a1a84adf",
+      "name": "UPDATE TASK STATUS"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "{\"task_id\": \"36458\", \"steps\": [{\"step_number\": 1, \"task_name\": \"Retrieve policy about workplace professionalism and conduct\"}, {\"step_number\": 2, \"task_name\": \"Summarize policy about workplace professionalism and conduct\"}], \"ai_agent\": \"RAG Orchestrator\"}"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Vertex Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Document Retriever'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Summarizer'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPDATE TASK STATUS": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "2bd290cb-b888-4476-bd8c-b96d9369abd1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "62726461b49b176cf1cc5c6f40ded7a70dacabee26b284e59974d37e6b78717e"
+  },
+  "id": "9COaOMtMS7sB9yjN",
+  "tags": []
+}

@@ -1,0 +1,96 @@
+{
+  "name": "GET_EMAIL",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -80,
+        -32
+      ],
+      "id": "27bda0ee-1f20-4ce9-bdec-f974ec262cea",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "filters": {
+          "readStatus": "unread"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        -160
+      ],
+      "id": "bc2a9918-376a-4792-aa54-34cd599d61c4",
+      "name": "GET_MANY_UNREAD_MESSAGE",
+      "webhookId": "b2fa2a0b-c549-4709-a46b-950f8819e2ae",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "zun3ccN77frp99t2",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "filters": {
+          "sender": ""
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        80
+      ],
+      "id": "e70dcef2-5073-4921-8509-c4c5fbc3bdc7",
+      "name": "GET_MANY_BY_EMAIL_SENDER_NAME",
+      "webhookId": "6fb69386-4fa2-4d09-ad93-21abddfb7f7a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "zun3ccN77frp99t2",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "GET_MANY_UNREAD_MESSAGE",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GET_MANY_BY_EMAIL_SENDER_NAME",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f4928285-8dc2-46f6-8325-5e2edfa1c294",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "62726461b49b176cf1cc5c6f40ded7a70dacabee26b284e59974d37e6b78717e"
+  },
+  "id": "s9rwoNbpZBisyGM8",
+  "tags": []
+}

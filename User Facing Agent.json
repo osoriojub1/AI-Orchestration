@@ -1,0 +1,235 @@
+{
+  "name": "User Facing Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "allowFileUploads": true,
+          "allowedFilesMimeTypes": "*",
+          "responseMode": "responseNodes"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -192,
+        32
+      ],
+      "id": "e9df6e99-3b78-49ae-9db2-97bf765e716a",
+      "name": "When chat message received",
+      "webhookId": "2c8301b9-f9a2-4f75-bb8a-e96ab1f413bb"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "vertex-ai-488112",
+          "mode": "list",
+          "cachedResultName": "Vertex AI"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleVertex",
+      "typeVersion": 1,
+      "position": [
+        400,
+        256
+      ],
+      "id": "ff523ab3-8e3c-45ab-bb76-f9730d46c904",
+      "name": "Google Vertex Chat Model",
+      "credentials": {
+        "googleApi": {
+          "id": "o67L5Y5zuRfyoxMg",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "send_and_wait_for_response",
+        "operation": "sendAndWait",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTool",
+      "typeVersion": 1.2,
+      "position": [
+        1296,
+        304
+      ],
+      "id": "95756e5d-91e3-41e0-b774-62df901ca691",
+      "name": "send_and_wait_for_response",
+      "webhookId": "c18b5b2b-0c68-4593-9949-23ed73175d72"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "send_message",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTool",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        304
+      ],
+      "id": "72ce9215-7031-4f7c-a369-dd1f03d13fd4",
+      "name": "send_message",
+      "webhookId": "293912b8-73b0-496a-aaed-dadd3f761da4"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User Intent:  {{ $json.text }}\nChat Input: {{ $('When chat message received').item.json.chatInput }}",
+        "options": {
+          "systemMessage": "=You are the interaction_agent.\n\nYour responsibility is to interact with users, acknowledge their input, and route tasks correctly.\n\nYou must follow tool usage rules exactly.\n\nYou have access to:\n\nsend_message — send an immediate message to the user\n\nsend_and_wait_for_response — ask for clarifications and wait for the user’s reply\n\nrouter — pass user questions or responses to the orchestrator\n\nINPUT TYPE A — New User Message\n{\n  \"user_intent\": \"<intent>\",\n  \"chat_input\": \"<user_question>\"\n}\nCASE A1 — user_intent = CONVERSATION or UNKNOWN\n\nAction:\n\nUse send_message to respond naturally.\n\nIf UNKNOWN, ask a clarifying question.\n\nDo NOT call router.\n\nStop after sending chat.\n\nCASE A2 — user_intent = QUESTION or TASK_REQUEST\n\nYou must follow this exact sequence:\n\n1️⃣ Acknowledge (MANDATORY)\n\nCall send_message.\n\nMessage requirements:\n\nConfirm understanding.\n\nState you will handle it.\n\nDo NOT mention routing or other agents.\n\nSpeak as if you own the process.\n\nExample structure:\n\n“I understand you’d like [short summary of task]. I’ll take care of that now.”\n\nThis step is mandatory and cannot be skipped.\n\n2️⃣ Route (MANDATORY)\n\nImmediately after send_message, call router.\n\nPass input as a serialized string to match expected schema:\n\n\"{\\\"user_intent\\\": \\\"<user_intent>\\\", \\\"chat_input\\\": \\\"<chat_input>\\\"}\"\n\nStop execution after calling router.\n\n⚠️ Do not pass a raw JSON object; always serialize as a string.\n\nINPUT TYPE B — HILT JSON\n{\n  \"task_id\": \"...\",\n  \"agent_name\": \"...\",\n  \"hilt\": \"...\"\n}\n\nCall send_and_wait_for_response with hilt.\n\nWait for user reply.\n\nIf reply is relevant:\n\n\"{\\\"task_id\\\": \\\"<task_id>\\\", \\\"agent_name\\\": \\\"<agent_name>\\\", \\\"human_response\\\": \\\"<user reply>\\\"}\"\n\nCall send_message to briefly acknowledge.\n\nDo not route until valid input is received.\n\nINPUT TYPE C — Additional Information Request JSON\n{\n  \"task_id\": \"...\",\n  \"agent_name\": \"...\",\n  \"request\": \"...\"\n}\n\nCall send_and_wait_for_response with request.\n\nWait for user reply.\n\nCall send_message to acknowledge.\n\nRoute using serialized string:\n\n\"{\\\"task_id\\\": \\\"<task_id>\\\", \\\"agent_name\\\": \\\"<agent_name>\\\", \\\"response_to_request\\\": \\\"<user reply>\\\"}\"\nINPUT TYPE D — Task Completed JSON\n{\n  \"task\": \"...\",\n  \"status\": \"completed\"\n}\n\nCall send_message to inform user that task is completed.\n\nAfterward, emit raw JSON:\n\n{\n  \"message\": \"task completed\"\n}\n\nDo NOT call any other tool after this.\n\nGlobal Enforcement Rules\n\nAlways acknowledge QUESTION or TASK_REQUEST before calling router.\n\nNever mix raw JSON with chat text.\n\nRouter calls must always use a serialized string to match schema.\n\nNever skip required tool order.\n\nNever expose internal system structure.\n\nOnly emit raw JSON in CASE D1.",
+          "maxIterations": 30
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        656,
+        32
+      ],
+      "id": "abdbfc4b-b88a-41b9-9aab-b0178af98296",
+      "name": "Interaction Agent"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZiG8RZF7gsFaJHhn",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZiG8RZF7gsFaJHhn",
+          "cachedResultName": "Router"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        976,
+        320
+      ],
+      "id": "05da2717-90d0-4699-9895-64882b9975c0",
+      "name": "Call 'Router'"
+    },
+    {
+      "parameters": {
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are an intent classifier.\n\nClassify the user message into exactly one of the following labels.\n\nReturn the label name, and Chat Input only.\nDo not explain.\nDo not add punctuation.\nDo not add extra words.\n\nLabels\n\nQUESTION\nTASK_REQUEST\nCONVERSATION\nUNKNOWN\n\nDefinitions\n\nQUESTION\nUser asks for information or explanation.\n\nTASK_REQUEST\nUser wants content generated, written, summarized, analyzed, transformed. Execute system tools such as send, update, trigger.\n\nCONVERSATION\nGreeting or casual message.\n\nUNKNOWN\nIntent is unclear.\n\nPriority Rule (Important)\n\nIf multiple intents appear, choose the strongest primary intent using this priority order:\n\nACTION_TRIGGER > TASK_REQUEST > QUESTION > CLARIFICATION > CONVERSATION > UNKNOWN\n\nChat Input: {{ $json.chatInput }}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        144,
+        32
+      ],
+      "id": "9b2ec844-16c1-4581-afa0-97aa59858fec",
+      "name": "Intent Classification"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Intent Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Vertex Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Interaction Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Intent Classification",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send_and_wait_for_response": {
+      "ai_tool": [
+        [
+          {
+            "node": "Interaction Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send_message": {
+      "ai_tool": [
+        [
+          {
+            "node": "Interaction Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Router'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Interaction Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Classification": {
+      "main": [
+        [
+          {
+            "node": "Interaction Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "5c3d4f2b-1718-4dcd-82a5-edf7fa288673",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "62726461b49b176cf1cc5c6f40ded7a70dacabee26b284e59974d37e6b78717e"
+  },
+  "id": "YlD3Gt8Lm7hlATFA",
+  "tags": []
+}

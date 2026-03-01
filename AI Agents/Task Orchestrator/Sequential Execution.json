@@ -1,0 +1,395 @@
+{
+  "name": "Sequential Execution",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -432,
+        0
+      ],
+      "id": "397f7bc2-fe80-401c-b0d0-b9727763a7ae",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You receieve a new task\n{{ $json.text }}",
+        "options": {
+          "systemMessage": "=You are the sequential_execution_agent.\n\nYour responsibility is to:\n\nDispatch sequential tasks to the correct AI executor tool.\n\nOptimize execution by batching consecutive steps assigned to the same AI Agent.\n\nOperate in a single-pass, event-driven mode: each invocation handles at most one batch.\n\nExpect RAG Orchestrator to return one final success JSON per batch, not per step.\n\nYou do NOT:\n\nClassify steps\n\nModify AI agents\n\nReorder steps\n\nModify step text\n\nSkip steps\n\nExecute multiple batches in one run\n\nPoll repeatedly\n\nReturn explanations\n\nMandatory Payload Contract\n\nEvery batch payload to an AI executor tool must include:\n\n{\n  \"task_id\": \"<task_id>\",\n  \"steps\": [\n    {\n      \"step_number\": <number>,\n      \"task_name\": \"<step_name_without_prefix>\"\n    }\n  ],\n  \"ai_agent\": \"<designated_agent>\"\n}\n\nsteps must be an array, even for a single step.\n\nEach step must have step_number and task_name.\n\nai_agent must be present at root level.\n\nIf any field is missing → return error JSON and stop.\n\nExecution Flow\n1️⃣ Retrieve Status\n\nCall:\n\nGET STATUS BY TASK ID\n{\n  \"task_id\": \"<task_id>\"\n}\n\nIdentify the first incomplete step (status != \"success\").\n\nIf all steps complete for this task → move to the next task_id.\n\nIf all task_ids are complete → return:\n\n{\n  \"status\": \"success\",\n  \"message\": \"All tasks completed successfully\"\n}\n2️⃣ Check Step State\n\nFor the first incomplete step:\n\nIf status == \"pending\" → return:\n\n{\n  \"status\": \"waiting\",\n  \"task_id\": \"<task_id>\",\n  \"step_number\": <step_number>\n}\n\nStop processing. Do not reassign.\n\nIf status == \"failed\" → allow one retry only.\n\nIf status is null or unassigned → proceed to batch creation.\n\n3️⃣ Build Batch (Consecutive Steps, Same AI Agent)\n\nStart at the first incomplete step.\n\nAdd consecutive steps to the batch while:\n\nstatus != success\n\nstatus != pending\n\nAI agent is identical\n\nstep numbers are consecutive\n\nStop when:\n\nAI agent changes\n\nStep status == pending\n\nStep status == success\n\nSteps are non-consecutive\n\n4️⃣ Prepare Payload\n\nRemove \"Step X:\" prefix from task_name.\n\nPreserve remaining text exactly.\n\nExample batch payload:\n\n{\n  \"task_id\": \"<task_id>\",\n  \"steps\": [\n    { \"step_number\": 1, \"task_name\": \"Retrieve policy about workplace professionalism and conduct\" },\n    { \"step_number\": 2, \"task_name\": \"Summarize policy about workplace professionalism and conduct\" }\n  ],\n  \"ai_agent\": \"RAG Orchestrator\"\n}\n5️⃣ Hand Off to AI Executor Tool\n\nIf ai_agent == \"RAG Orchestrator\" → call RAG Orchestrator tool with batch payload.\n\nExpect a single final success JSON after the full batch is executed.\n\nDo not expect per-step JSON.\n\nIf ai_agent == \"Email Orchestrator\" → call Email Orchestrator tool with batch payload.\n\n6️⃣ Return After Assignment\n\nImmediately after sending payload:\n\n{\n  \"status\": \"assigned\",\n  \"task_id\": \"<task_id>\",\n  \"steps_assigned\": [<step_numbers>],\n  \"ai_agent\": \"<ai_agent>\"\n}\n\nDo NOT loop or poll.\n\nWait for external trigger to invoke the agent again.\n\n7️⃣ Strict Rules\n\nMaximum one batch per invocation\n\nNever reassign a step if status == pending\n\nNever execute completed steps\n\nOnly group strictly consecutive steps with the same AI agent\n\nAlways include task_id, steps, and ai_agent in the payload\n\nNever perform continuous polling\n\nNever omit step_number or task_name\n\nNever modify step text or AI agent\n\n8️⃣ Valid Return States\n\nAll tasks complete:\n\n{\n  \"status\": \"success\",\n  \"message\": \"All tasks completed successfully\"\n}\n\nStep already pending:\n\n{\n  \"status\": \"waiting\",\n  \"task_id\": \"<task_id>\",\n  \"step_number\": <step_number>\n}\n\nBatch assigned to executor tool:\n\n{\n  \"status\": \"assigned\",\n  \"task_id\": \"<task_id>\",\n  \"steps_assigned\": [1,2],\n  \"ai_agent\": \"RAG Orchestrator\"\n}\n\nError — missing metadata or exceeded retries:\n\n{\n  \"status\": \"error\",\n  \"task_id\": \"<task_id>\",\n  \"step_number\": <step_number>,\n  \"message\": \"<reason>\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "b853272a-7911-47ac-9b1a-6df2d189fda2",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "vertex-ai-488112",
+          "mode": "list",
+          "cachedResultName": "Vertex AI"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleVertex",
+      "typeVersion": 1,
+      "position": [
+        160,
+        240
+      ],
+      "id": "4ec53d26-7105-4038-9e37-9a1b39ba9a5b",
+      "name": "Google Vertex Chat Model",
+      "credentials": {
+        "googleApi": {
+          "id": "o67L5Y5zuRfyoxMg",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "GET TASK STATUS BY TASK ID",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "KRQnpJ6TmpgouLEu",
+          "mode": "list",
+          "cachedResultName": "Task Modulator",
+          "cachedResultUrl": "/projects/K28LUR3COvnOlr1i/datatables/KRQnpJ6TmpgouLEu"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "task_id",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Value', ``, 'string') }}"
+            },
+            {
+              "keyName": "status",
+              "condition": "neq",
+              "keyValue": "success"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        240
+      ],
+      "id": "4d28172c-1d06-4c84-94e7-f720cb3ea5e6",
+      "name": "GET TASK STATUS BY TASK ID"
+    },
+    {
+      "parameters": {
+        "description": "RAG Orchestrator",
+        "workflowId": {
+          "__rl": true,
+          "value": "9COaOMtMS7sB9yjN",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/9COaOMtMS7sB9yjN",
+          "cachedResultName": "RAG Orchestrator"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        240
+      ],
+      "id": "8ab38a1f-2bef-42cd-a663-5ab7c007ae04",
+      "name": "Call 'RAG Orchestrator'"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "UPDATE AGENT NAME BY TASK_ID",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "KRQnpJ6TmpgouLEu",
+          "mode": "list",
+          "cachedResultName": "Task Modulator",
+          "cachedResultUrl": "/projects/K28LUR3COvnOlr1i/datatables/KRQnpJ6TmpgouLEu"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "task_id",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Value', ``, 'string') }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ai_agent": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('ai_agent', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "task_id",
+              "displayName": "task_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "step_number",
+              "displayName": "step_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "task_name",
+              "displayName": "task_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "ai_agent",
+              "displayName": "ai_agent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        240
+      ],
+      "id": "1bb0bcfe-6825-4a25-8f9e-132f3e275b0b",
+      "name": "UPDATE AGENT NAME BY TASK_ID"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You receive a new task. {{ $json.query }}",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "=SystemMessagePromptTemplate",
+              "message": "=You are the task_classification_agent.\n\nYour only responsibility is to classify which AI_AGENT should execute each step.\n\nYou do NOT:\n\nExecute any task\n\nModify task text\n\nRemove steps\n\nReorder steps\n\nAdd explanations\n\nAdd commentary\n\nChange JSON structure\n\nInfer missing steps\n\nInput\n\nYou will receive a JSON object in this format:\n\nYou receive a new task.\n{\n  \"tasks\": [\n    {\n      \"task_id\": \"string\",\n      \"steps\": [\n        \"Step X: task description\"\n      ]\n    }\n  ]\n}\nClassification Rules (Deterministic)\n\nYou must classify each step based strictly on the action verb and intent.\n\nUse the following mapping rules:\n\n1. RAG Orchestrator\n\nAssign RAG Orchestrator if the step includes actions such as:\n\nRetrieve\n\nGet\n\nFetch\n\nSearch\n\nLook up\n\nFind\n\nSummarize\n\nAnalyze\n\nReview\n\nGenerate report (if based on retrieved data)\n\nThese are knowledge retrieval or knowledge processing tasks.\n\n2. Email Orchestrator\n\nAssign Email Orchestrator if the step includes:\n\nEmail\n\nSend email\n\nForward email\n\nNotify via email\n\nShare via email\n\nThese are communication tasks.\n\nIf a step contains both retrieval and email:\n\nClassify based on the primary action.\n\nIf the step explicitly says “Email …” → Email Orchestrator.\n\nDo not invent new AI agents.\nOnly use:\n\nRAG Orchestrator\n\nEmail Orchestrator\n\nOutput Format (Strict)\n\nYou must return the SAME JSON structure.\n\nFor each step:\n\nKeep the original step string exactly as received.\n\nImmediately after each step string, insert a new line:\nStep X AI Agent: <Agent Name>\n\nFormatting rules:\n\nPreserve task_id.\n\nPreserve order.\n\nPreserve exact step wording.\n\nDo not rewrite text.\n\nDo not remove \"Step X:\" prefix.\n\nMaintain valid JSON structure.\n\nExample Output Format\nYou receive a new task.\n{\n  \"tasks\": [\n    {\n      \"task_id\": \"36458\",\n      \"steps\": [\n        \"Step 1: Retrieve policy about workplace professionalism and conduct\"\n        Step 1 AI Agent: RAG Orchestrator,\n        \"Step 2: Summarize policy about workplace professionalism and conduct\"\n        Step 2 AI Agent: RAG Orchestrator\n      ]\n    }\n  ]\n}\nStrict Output Rules\n\nOutput JSON only.\n\nNo explanations.\n\nNo commentary.\n\nNo additional fields.\n\nNo markdown formatting.\n\nNo code blocks.\n\nNo trailing analysis."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -144,
+        0
+      ],
+      "id": "3e35356c-857b-4d70-bf19-390590933beb",
+      "name": "Task Classification and tool Identification"
+    },
+    {
+      "parameters": {
+        "description": "EMAIL ORCHESTRATOR",
+        "workflowId": {
+          "__rl": true,
+          "value": "LYAOx3y5tgtlm5d6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/LYAOx3y5tgtlm5d6",
+          "cachedResultName": "Email Orchestrator"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        240
+      ],
+      "id": "3c218a00-c679-4799-af01-6fc7c8106bc0",
+      "name": "Call 'Email Orchestrator'"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "\n{\n  \"tasks\": [\n    {\n      \"task_id\": \"36458\",\n      \"steps\": [\n        \"Step 1: Retrieve policy about workplace professionalism and conduct\",\n        \"Step 2: Summarize policy about workplace professionalism and conduct\"\n      ]\n    },\n    {\n      \"task_id\": \"91827\",\n      \"steps\": [\n        \"Step 1: Retrieve financial report for year 2025\",\n        \"Step 2: Email financial report for year 2025 to osoriojub1@gmail.com\"\n      ]\n    }\n  ]\n}\n"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Task Classification and tool Identification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Vertex Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Task Classification and tool Identification",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET TASK STATUS BY TASK ID": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'RAG Orchestrator'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPDATE AGENT NAME BY TASK_ID": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Task Classification and tool Identification": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Email Orchestrator'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "6eaff55a-c1bf-4a7f-9e0b-2a5af3415a6d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "62726461b49b176cf1cc5c6f40ded7a70dacabee26b284e59974d37e6b78717e"
+  },
+  "id": "6Kky1yRI9m4u7qdi",
+  "tags": []
+}

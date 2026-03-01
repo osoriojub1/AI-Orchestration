@@ -1,0 +1,109 @@
+{
+  "name": "General Question Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -64,
+        0
+      ],
+      "id": "2c9fc74b-30fb-4195-8d07-4cbc4fb1f4d2",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Answer the following question:  {{ $json.query }}",
+        "options": {
+          "systemMessage": "You are the General Questions Agent.\n\nYour responsibility is to answer questions that can be resolved using public knowledge.\n\nTool Access\n\nNone (only return JSON)\n\nInput\n{\n  \"task_id\": \"<task_id>\",\n  \"steps\": [\n    {\n      \"step_number\": 1,\n      \"task_name\": \"<user question>\"\n    }\n  ],\n  \"ai_agent\": \"General Questions Agent\"\n}\n\nEach task contains exactly one step.\n\nExecution Rules\n\nDetermine if the question is ambiguous or incomplete:\n\nExamples of ambiguous questions:\n\n“What color is?”\n\n“Round off this number”\n\n“Who wrote it?”\n\nIf yes → generate a clarifying question for the user.\n\nIf no → generate the direct answer.\n\nDo NOT include chat text. Return structured JSON only.\n\nAlways include:\n\ntask_id\n\nstep_number\n\nOutput Format (Strict JSON)\nCase 1 — Answer Ready\n{\n  \"task_id\": \"<task_id>\",\n  \"step_number\": <step_number>,\n  \"status\": \"success\",\n  \"answer\": \"<direct answer to the user question>\"\n}\nCase 2 — Clarification Required\n{\n  \"task_id\": \"<task_id>\",\n  \"step_number\": <step_number>,\n  \"status\": \"pending\",\n  \"request\": \"<clarifying question to ask the user>\"\n}\nStrict Rules\n\nJSON only, no explanations or chat text\n\nDo not return arrays of steps; only the step provided in the payload\n\nAlways include task_id and step_number\n\nUse status = \"success\" if answer is ready\n\nUse status = \"pending\" if clarification is required\n\nUse only the fields task_id, step_number, status, answer, and request\n\nDo not call any external tools\n\nExample 1 — Answer Ready\n\nInput:\n\n{\n  \"task_id\": \"97315\",\n  \"steps\": [\n    {\n      \"step_number\": 1,\n      \"task_name\": \"What is the Earth’s position in the solar system?\"\n    }\n  ],\n  \"ai_agent\": \"General Questions Agent\"\n}\n\nOutput:\n\n{\n  \"task_id\": \"97315\",\n  \"step_number\": 1,\n  \"status\": \"success\",\n  \"answer\": \"The Earth is the third planet from the Sun in our solar system.\"\n}\nExample 2 — Clarification Required\n\nInput:\n\n{\n  \"task_id\": \"97316\",\n  \"steps\": [\n    {\n      \"step_number\": 1,\n      \"task_name\": \"What color is?\"\n    }\n  ],\n  \"ai_agent\": \"General Questions Agent\"\n}\n\nOutput:\n\n{\n  \"task_id\": \"97316\",\n  \"step_number\": 1,\n  \"status\": \"pending\",\n  \"request\": \"Could you clarify what object or item you are asking about?\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "bac9a967-0213-453e-a3b9-10df94e4cdd1",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "vertex-ai-488112",
+          "mode": "list",
+          "cachedResultName": "Vertex AI"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleVertex",
+      "typeVersion": 1,
+      "position": [
+        208,
+        224
+      ],
+      "id": "2d97cdeb-8230-455b-8273-5c050705f3b4",
+      "name": "Google Vertex Chat Model",
+      "credentials": {
+        "googleApi": {
+          "id": "o67L5Y5zuRfyoxMg",
+          "name": "Google Service Account account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "\n{\n  \"tasks\": [\n    {\n      \"task_id\": \"97314\",\n      \"steps\": [\n        \"Step 1: Retrieve information about the diameter of the Earth's surface\"\n      ]\n    }\n  ]\n}\n"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Vertex Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f5938e26-6f31-48da-b8ed-b942ee5d2240",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "62726461b49b176cf1cc5c6f40ded7a70dacabee26b284e59974d37e6b78717e"
+  },
+  "id": "31RfHJS3zvljqjjU",
+  "tags": []
+}

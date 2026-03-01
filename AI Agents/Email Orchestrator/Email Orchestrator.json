@@ -1,0 +1,203 @@
+{
+  "name": "Email Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -16,
+        -16
+      ],
+      "id": "6aa3f48b-981a-41a9-bde1-3dac6e3b72c6",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ json.output }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        192,
+        -16
+      ],
+      "id": "91faedd8-6eab-4bb8-ae26-2cd77b3b6eb3",
+      "name": "Task Identifier"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        544,
+        -16
+      ],
+      "id": "3ef21782-842f-48af-ae16-631522222c0c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "vertex-ai-488112",
+          "mode": "list",
+          "cachedResultName": "Vertex AI"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleVertex",
+      "typeVersion": 1,
+      "position": [
+        368,
+        224
+      ],
+      "id": "c11e61f1-3ee2-42db-8546-110eaa4a1bb3",
+      "name": "Google Vertex Chat Model",
+      "credentials": {
+        "googleApi": {
+          "id": "o67L5Y5zuRfyoxMg",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "GENERATE_DRAFT",
+        "workflowId": {
+          "__rl": true,
+          "value": "tE2KsoMCJikxaioS",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/tE2KsoMCJikxaioS",
+          "cachedResultName": "Draft Generator"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1056,
+        208
+      ],
+      "id": "079cdc33-f543-40bc-aadc-82183f5cf6b5",
+      "name": "Call 'GENERATE_DRAFT'"
+    },
+    {
+      "parameters": {
+        "description": "SEND_EMAIL",
+        "workflowId": {
+          "__rl": true,
+          "value": "0D1XvIaJXN3AopTC",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/0D1XvIaJXN3AopTC",
+          "cachedResultName": "SEND_EMAIL"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        864,
+        224
+      ],
+      "id": "0e6e8e89-267c-4655-adf3-2f4a53a7fd94",
+      "name": "Call 'SEND_EMAIL'"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Task Identifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Task Identifier": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Vertex Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Task Identifier",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'GENERATE_DRAFT'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'SEND_EMAIL'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "0194d0a1-fb1e-4dbe-9d71-060563119fb7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "62726461b49b176cf1cc5c6f40ded7a70dacabee26b284e59974d37e6b78717e"
+  },
+  "id": "LYAOx3y5tgtlm5d6",
+  "tags": []
+}

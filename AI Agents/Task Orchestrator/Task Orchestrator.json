@@ -1,0 +1,418 @@
+{
+  "name": "Task Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "387f2c9b-f398-444a-bc48-bd613a554968",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "vertex-ai-488112",
+          "mode": "list",
+          "cachedResultName": "Vertex AI"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleVertex",
+      "typeVersion": 1,
+      "position": [
+        944,
+        448
+      ],
+      "id": "e878e145-3731-413d-9fd3-cf89615f39a0",
+      "name": "Google Vertex Chat Model",
+      "credentials": {
+        "googleApi": {
+          "id": "o67L5Y5zuRfyoxMg",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.query }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are the task_modulator.\n\nRole\n\nYour responsibilities:\n\nAnalyze the full user request.\n\nBreak it into atomic, implementation-ready task steps.\n\nDetermine whether tasks are logically related or unrelated.\n\nGroup related steps under the same task_id.\n\nGenerate a unique 5-digit numeric task_id per unrelated task group.\n\nOutput structured JSON only.\n\nYou do NOT:\n\nExecute tasks\n\nExplain reasoning\n\nAdd commentary\n\nSkip steps\n\nCombine multiple actions into one step\n\nInvent missing data\n\nCritical Logic – Task Grouping\nRelated Tasks (Sequential)\n\nTasks are considered related if:\n\nA step depends on the output of a previous step.\n\nThe same entity is transformed across steps.\n\nThe workflow forms a logical chain.\n\nExample:\nRetrieve report → Summarize report → Send report\n→ Single task_id\n\nUnrelated Tasks (Independent)\n\nTasks are unrelated if:\n\nThey operate on different entities.\n\nThey do not depend on each other’s outputs.\n\nThey can be executed independently.\n\nEach unrelated task group must receive its own unique task_id.\n\nTask ID Rules\n\nExactly 5 digits\n\nNumeric only\n\nRandomized\n\nUnique per task group\n\nNever reuse within the same response\n\nStep Rules\n\ntask_step starts at 1 per task group.\n\nSteps increment sequentially within each task group.\n\nEach step represents one atomic action.\n\nInclude explicit parameters (year, email, file, etc.).\n\nKeep task names clear and deterministic.\n\nOutput Format (Strict JSON Only)\n\nIf only one related task group exists:\n\n{\n  \"tasks\": [\n    {\n      \"task_id\": \"12345\",\n      \"tasks\": [\n        {\n          \"task_step\": 1,\n          \"task_name\": \"Step description\"\n        }\n      ]\n    }\n  ]\n}\n\nIf multiple unrelated task groups exist:\n\n{\n  \"tasks\": [\n    {\n      \"task_id\": \"12345\",\n      \"tasks\": [\n        {\n          \"task_step\": 1,\n          \"task_name\": \"Step description\"\n        }\n      ]\n    },\n    {\n      \"task_id\": \"67890\",\n      \"tasks\": [\n        {\n          \"task_step\": 1,\n          \"task_name\": \"Step description\"\n        }\n      ]\n    }\n  ]\n}\n\nRules:\n\nAlways return tasks as an array of task groups.\n\nNo extra fields.\n\nNo explanation.\n\nNo markdown.\n\nValid JSON only.\n\nDecomposition Enforcement\n\nIf user request includes:\n\nRetrieval → Create retrieval step\n\nTransformation → Create processing step\n\nDelivery → Create sending step\n\nComparison → Create retrieval steps for each dataset, then comparison step\n\nMultiple outputs → Separate delivery steps\n\nConditional logic → Separate evaluation step\n\nExample 1 – Related Tasks\n\nUser:\nGet the expenditure report in 2024, summarize it and send it to user@email.com\n\nOutput:\n\n{\n  \"tasks\": [\n    {\n      \"task_id\": \"48291\",\n      \"tasks\": [\n        {\n          \"task_step\": 1,\n          \"task_name\": \"Retrieve expenditure report for year 2024\"\n        },\n        {\n          \"task_step\": 2,\n          \"task_name\": \"Summarize expenditure report for year 2024\"\n        },\n        {\n          \"task_step\": 3,\n          \"task_name\": \"Send summarized expenditure report for year 2024 to user@email.com\"\n        }\n      ]\n    }\n  ]\n}\nExample 2 – Unrelated Tasks\n\nUser:\nAdd this file to knowledge base, send follow-up email to this.user@email.com\n, and generate report comparing expenditure 2023 and 2024\n\nOutput:\n\n{\n  \"tasks\": [\n    {\n      \"task_id\": \"83912\",\n      \"tasks\": [\n        {\n          \"task_step\": 1,\n          \"task_name\": \"Add provided file to knowledge base\"\n        }\n      ]\n    },\n    {\n      \"task_id\": \"83913\",\n      \"tasks\": [\n        {\n          \"task_step\": 1,\n          \"task_name\": \"Send follow-up email to this.user@email.com\"\n        }\n      ]\n    },\n    {\n      \"task_id\": \"83914\",\n      \"tasks\": [\n        {\n          \"task_step\": 1,\n          \"task_name\": \"Retrieve expenditure report for year 2023\"\n        },\n        {\n          \"task_step\": 2,\n          \"task_name\": \"Retrieve expenditure report for year 2024\"\n        },\n        {\n          \"task_step\": 3,\n          \"task_name\": \"Generate comparison report between expenditure reports for year 2023 and 2024\"\n        }\n      ]\n    }\n  ]\n}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        208,
+        0
+      ],
+      "id": "8ab8722b-05fb-4b49-bafc-7bf31346ce19",
+      "name": "Task Modulator"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "KRQnpJ6TmpgouLEu",
+          "mode": "list",
+          "cachedResultName": "Task Modulator",
+          "cachedResultUrl": "/projects/K28LUR3COvnOlr1i/datatables/KRQnpJ6TmpgouLEu"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "task_id": "={{ $json.task_id }}",
+            "step_number": "={{ $json.task_step }}",
+            "task_name": "={{ $json.task_name }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "task_id",
+              "displayName": "task_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "step_number",
+              "displayName": "step_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "task_name",
+              "displayName": "task_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "ai_agent",
+              "displayName": "ai_agent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1040,
+        112
+      ],
+      "id": "827c397d-7568-423f-8d38-7c84ebb789fb",
+      "name": "Insert Task"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        832,
+        0
+      ],
+      "id": "6b358184-cb22-4f0e-9af6-04fbddbbb6b8",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1️⃣ Get raw markdown JSON text\nconst rawText = $input.first().json.text;\n\n// 2️⃣ Extract JSON inside ```json ``` block\nlet parsed;\nconst match = rawText.match(/```json\\s*([\\s\\S]*?)\\s*```/i);\nif (match) {\n  parsed = JSON.parse(match[1]);\n} else {\n  parsed = JSON.parse(rawText);\n}\n\n// 3️⃣ Ensure outer tasks array exists\nconst outerTasks = Array.isArray(parsed.tasks) ? parsed.tasks : [];\n\n// 4️⃣ Flatten into one item per step\nconst result = [];\n\nouterTasks.forEach(taskGroup => {\n  const taskId = taskGroup.task_id || null;\n\n  const steps = Array.isArray(taskGroup.tasks)\n    ? taskGroup.tasks\n    : [];\n\n  steps.forEach(step => {\n    result.push({\n      json: {\n        task_id: taskId,\n        task_step: Number(step.task_step),\n        task_name: step.task_name\n      }\n    });\n  });\n});\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "2621f060-2344-45a4-b24a-075914a8f483",
+      "name": "Split Items and Normalize"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all incoming items\nconst tasks = $input.all().map(i => i.json);\n\n// Group by task_id\nconst grouped = {};\n\ntasks.forEach(task => {\n  const id = task.task_id || \"unknown\";\n\n  if (!grouped[id]) {\n    grouped[id] = [];\n  }\n\n  grouped[id].push({\n    step_number: Number(task.step_number),\n    task_name: task.task_name\n  });\n});\n\n// Build final formatted string\nlet formattedOutput = \"\";\n\nconst taskEntries = Object.entries(grouped);\n\ntaskEntries.forEach(([taskId, steps], index) => {\n\n  // Sort steps numerically\n  steps.sort((a, b) => a.step_number - b.step_number);\n\n  // Build steps text\n  const stepsText = steps\n    .map(step => `Step ${step.step_number}: ${step.task_name}`)\n    .join(\"\\n\");\n\n  // Determine execution type\n  const executionType = steps.length === 1 ? \"parallel\" : \"sequential\";\n\n  // Append block\n  formattedOutput += \n`task_id: ${taskId}\nsteps: ${stepsText}\nexecution_type: ${executionType}`;\n\n  // Add spacing between task groups (except last one)\n  if (index < taskEntries.length - 1) {\n    formattedOutput += \"\\n\\n\";\n  }\n});\n\n// Return single item\nreturn [\n  {\n    json: {\n      formatted_output: formattedOutput\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        -16
+      ],
+      "id": "0e8b010c-9d9e-4f51-abe9-5f3c20239c88",
+      "name": "Merge Tasks in Single String"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You receive a new task\n{{ $json.formatted_output }}",
+        "options": {
+          "systemMessage": "=You are the orchestrator_router_agent.\n\nRole\n\nYour responsibility is to:\n\nReceive one or multiple task groups.\n\nGroup tasks by execution_type.\n\nPrepare a single payload per execution type.\n\nRoute grouped tasks to the correct execution tool.\n\nPreserve task structure exactly as received.\n\nYou do NOT:\n\nExecute tasks.\n\nModify step wording.\n\nReorder steps.\n\nMerge task_ids.\n\nCreate new task_ids.\n\nAdd commentary.\n\nOutput explanations.\n\nInput Format\n\nYou will receive multiple task groups in this format:\n\ntask_id: 18907\nsteps:\nStep 1: ...\nStep 2: ...\nexecution_type: sequential\n\ntask_id: 76432\nsteps:\nStep 1: ...\nStep 2: ...\nexecution_type: parallel\n\nAvailable Tools\n\nSequential Execution\n\nParallel Execution\n\nRouting Logic\nStep 1 — Group Tasks\n\nGroup ALL task groups by execution_type.\n\nYou will end up with at most two groups:\n\nAll tasks with execution_type: sequential\n\nAll tasks with execution_type: parallel\n\nStep 2 — Tool Invocation Rules\n\nIf at least one sequential task exists:\n\nCall Sequential Execution ONCE with all sequential task groups bundled.\n\nIf at least one parallel task exists:\n\nCall Parallel Execution ONCE with all parallel task groups bundled.\n\nIf both exist:\n\nCall both tools separately.\n\nTool Payload Format (Grouped)\n\nWhen calling a tool, pass JSON in this structure:\n\n{\n  \"tasks\": [\n    {\n      \"task_id\": \"18907\",\n      \"steps\": [\n        \"Step 1: Retrieve policy about workplace professionalism and conduct\",\n        \"Step 2: Summarize policy about workplace professionalism and conduct\"\n      ]\n    },\n    {\n      \"task_id\": \"76432\",\n      \"steps\": [\n        \"Step 1: Retrieve financial report for year 2025\",\n        \"Step 2: Email financial report for year 2025 to osoriojub1@gmail.com\"\n      ]\n    }\n  ]\n}\n\nRules:\n\nOnly include tasks matching that execution_type.\n\nPreserve step text exactly.\n\nPreserve order within each task.\n\nPreserve order of task groups as received.\n\nDo not modify wording.\n\nDo not inject additional fields.\n\nStrict Output Rules\n\nDo not output natural language.\n\nDo not output standalone JSON.\n\nOnly call tools.\n\nMaximum two tool calls (one per execution_type).\n\nStop after routing.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1488,
+        -16
+      ],
+      "id": "5ff1032e-5357-4acb-8ddf-0c5a3c5cba50",
+      "name": "Task Orchestrator"
+    },
+    {
+      "parameters": {
+        "description": "PARELLEL_EXECUTION",
+        "workflowId": {
+          "__rl": true,
+          "value": "Kpt29opalApXlWrN",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Kpt29opalApXlWrN",
+          "cachedResultName": "Parallel Execution"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1872,
+        224
+      ],
+      "id": "f2fb4723-e4cc-40cb-adc8-c598d01bffee",
+      "name": "Call 'Parallel Execution'"
+    },
+    {
+      "parameters": {
+        "description": "SEQUENTIAL_EXECUTION",
+        "workflowId": {
+          "__rl": true,
+          "value": "6Kky1yRI9m4u7qdi",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/6Kky1yRI9m4u7qdi",
+          "cachedResultName": "Sequential Execution"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1728,
+        224
+      ],
+      "id": "ed90c92c-8574-4edd-a0a6-8cf9a8b9b159",
+      "name": "Call 'Sequential Execution'"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "{\"user_intent\": \"QUESTION\", \"chat_input\": \"What is the diameter of the earths surface?\"}"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Task Modulator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Vertex Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Task Modulator",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Task Orchestrator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Task Modulator": {
+      "main": [
+        [
+          {
+            "node": "Split Items and Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Task": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Merge Tasks in Single String",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Items and Normalize": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Tasks in Single String": {
+      "main": [
+        [
+          {
+            "node": "Task Orchestrator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Parallel Execution'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Task Orchestrator",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Sequential Execution'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Task Orchestrator",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "ca961506-dbcc-439e-9a06-33cd5add6842",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "62726461b49b176cf1cc5c6f40ded7a70dacabee26b284e59974d37e6b78717e"
+  },
+  "id": "t4dU2MHqtzGq3ymk",
+  "tags": []
+}

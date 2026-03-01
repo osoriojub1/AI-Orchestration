@@ -1,0 +1,185 @@
+{
+  "name": "Summarizer",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2a65a05d-8197-4760-80e0-32e5d9727059",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "vertex-ai-488112",
+          "mode": "list",
+          "cachedResultName": "Vertex AI"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleVertex",
+      "typeVersion": 1,
+      "position": [
+        208,
+        240
+      ],
+      "id": "5f7d030f-70b7-46c1-9653-e0e78dbc2d91",
+      "name": "Google Vertex Chat Model",
+      "credentials": {
+        "googleApi": {
+          "id": "o67L5Y5zuRfyoxMg",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You recieve a new content: {{ $json.query }}",
+        "options": {
+          "systemMessage": "You are the Summarizer AI Agent.\n\nYour responsibility is to:\n\nGenerate a clear, readable, and well-structured summary of the input content.\n\nSave the summarized output into the data table with columns: task_id, summarized_output, status.\n\nRules for Summarization\n\nWell-structured paragraphs:\n\nEach key idea or point should be in a separate paragraph.\n\nDo not compress all content into a single paragraph.\n\nConcise and clear language:\n\nAvoid unnecessary repetition.\n\nPreserve the meaning and important details.\n\nDo not include explanations, metadata, or commentary.\n\nOutput only the summary content.\n\nFormatting guidelines:\n\nUse line breaks between paragraphs.\n\nMaintain readability for a human audience.\n\nInput\n\nYou will receive:\n\n{\n  \"task_id\": \"<task_id>\",\n  \"content\": \"<text_to_summarize>\"\n}\nOutput Steps\n\nGenerate summary of content according to the summarization rules.\n\nSave output into data table using your tool access:\n\n{\n  \"task_id\": \"<task_id>\",\n  \"summarized_output\": \"<generated_summary>\",\n  \"status\": \"success\"\n}\n\ntask_id → from input\n\nsummarized_output → the well-structured summary\n\nstatus → \"success\"\n\nReturn a JSON response confirming completion:\n\n{\n  \"task_id\": \"<task_id>\",\n  \"status\": \"success\",\n  \"message\": \"Summary saved successfully\"\n}\nStrict Rules\n\nAlways return valid JSON.\n\nDo not output plain text, explanations, or markdown.\n\nMaintain paragraph structure in summarized_output.\n\nDo not modify task_id.\n\nEnsure the summary is human-readable and properly spaced."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "38221277-5c5d-4920-ae8d-d4f8e2671c6a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Insert Summarized Output to Data table",
+        "dataTableId": {
+          "__rl": true,
+          "value": "2ZD2HC22Lvesgp6P",
+          "mode": "list",
+          "cachedResultName": "Summarizer",
+          "cachedResultUrl": "/projects/K28LUR3COvnOlr1i/datatables/2ZD2HC22Lvesgp6P"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "task_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('task_id', ``, 'string') }}",
+            "summarized_output": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('summarized_output', ``, 'string') }}",
+            "status": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('status', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "task_id",
+              "displayName": "task_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summarized_output",
+              "displayName": "summarized_output",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        528,
+        160
+      ],
+      "id": "5c32ed2c-caaf-4042-8edd-9a6193572496",
+      "name": "Insert Summarized output to data table"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "The document discusses workplace professionalism and conduct, covering topics such as:\n\n*   **Confidentiality:** All proprietary company information, client data, and employee records must be kept confidential. Unauthorized sharing is prohibited.\n*   **Health and Safety:** Employees must comply with safety rules, report hazards immediately, and document any workplace injuries or incidents.\n*   **Compliance:** Employees must comply with all applicable laws and company policies. Violations may lead to disciplinary measures, including termination.\n*   **Policy Review:** The policy will be reviewed annually and updated as needed.\n\nThe document is approved by Jubilee Osorio, Chief Executive Officer, on February 24, 2026."
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Vertex Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Summarized output to data table": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "03c961f8-cf02-4513-a0c9-b49411f81465",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "62726461b49b176cf1cc5c6f40ded7a70dacabee26b284e59974d37e6b78717e"
+  },
+  "id": "6LbdQzkxP3dWeGsH",
+  "tags": []
+}

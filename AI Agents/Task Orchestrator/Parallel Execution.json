@@ -1,0 +1,303 @@
+{
+  "name": "Parallel Execution",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -416,
+        16
+      ],
+      "id": "48df5b2e-f96c-4184-8440-e1c4e9cf7d3e",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.text }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Email Agent",
+              "description": "Steps that involve sending emails, notifications, or message delivery"
+            },
+            {
+              "category": "RAG Agent",
+              "description": "=Steps that involve retrieving document, knowledge base queries, or document analysis from stored information in Vector Database."
+            },
+            {
+              "category": "General Question",
+              "description": "=Steps that involve user questions, Q&A, or informational requests that can be answered directly out of general public knowledge."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "8a0bffa7-5f9c-4761-90df-98e4a42fbc85",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "value": "vertex-ai-488112",
+          "mode": "list",
+          "cachedResultName": "Vertex AI"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleVertex",
+      "typeVersion": 1,
+      "position": [
+        48,
+        288
+      ],
+      "id": "bee54ffc-11ef-4f76-a847-ec78435a324b",
+      "name": "Google Vertex Chat Model",
+      "credentials": {
+        "googleApi": {
+          "id": "o67L5Y5zuRfyoxMg",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "LYAOx3y5tgtlm5d6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/LYAOx3y5tgtlm5d6",
+          "cachedResultName": "Email Orchestrator"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        816,
+        -240
+      ],
+      "id": "592c4ec3-0101-4af3-8cf0-2947bfaecabe",
+      "name": "Call 'Email Orchestrator'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "9COaOMtMS7sB9yjN",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/9COaOMtMS7sB9yjN",
+          "cachedResultName": "RAG Orchestrator"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        816,
+        0
+      ],
+      "id": "5f296e2b-9f1c-4380-8443-db38bf1d35c8",
+      "name": "Call 'RAG Orchestrator'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "31RfHJS3zvljqjjU",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/31RfHJS3zvljqjjU",
+          "cachedResultName": "General Question Agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1088,
+        288
+      ],
+      "id": "7f1e7c37-a073-4f6f-95d2-32853b1f8548",
+      "name": "Call 'General Question Agent'"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2a8a05bb-db9d-442f-bad7-89139af25f40",
+              "name": "query",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        816,
+        288
+      ],
+      "id": "0bb9246a-09b7-403c-8166-c2a7f33e36a5",
+      "name": "Prepare Payload for General Question"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Classify the following task to identify which AI Agent to execute the task: {{ $json.query }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are the task_classification_agent.\n\nYour only responsibility is to assign exactly one AI agent to each parallel task step, following these rules:\n\nYou DO NOT:\n\nExecute tasks\n\nModify task text\n\nRemove steps\n\nReorder tasks\n\nAdd explanations or commentary\n\nChange JSON structure\n\nInfer missing steps\n\nInput\n{\n  \"tasks\": [\n    {\n      \"task_id\": \"string\",\n      \"steps\": [\n        \"Step 1: task description\"\n      ]\n    }\n  ]\n}\n\nEach task may contain only one step. Each step should remain separate for parallel execution.\n\nClassification Rules\n\nAssign AI agents based strictly on the intent and source of information:\n\nRAG Orchestrator → use this agent if the task requires retrieval from internal documents, knowledge bases, or operations involving vector/embedding tools. Examples include:\n\nRetrieve, Get, Fetch, Search, Look up, Find from company docs or vector stores\n\nSummarize internal documents\n\nAnalyze or review internal reports\n\nGenerate report based on internal data\n\nGeneral Questions Agent → use this agent if the task is public knowledge Q&A or general factual questions that do not require internal document retrieval. Examples include:\n\n“What is the Earth’s position in the solar system?”\n\n“Who wrote Hamlet?”\n\nGeneral information, trivia, or public knowledge questions\n\nIf a step involves both internal document retrieval and public knowledge, prioritize RAG Orchestrator.\nOnly use the following agents: RAG Orchestrator, General Questions Agent, Email Orchestrator.\n\nOutput Format (Strict JSON)\n\nPreserve task_id\n\nKeep steps as an array with exactly one step object\n\nEach step object must include:\n\n{\n  \"step_number\": 1,\n  \"task_name\": \"<original step text>\"\n}\n\nAdd ai_agent at the root of the task:\n\n{\n  \"task_id\": \"<task_id>\",\n  \"steps\": [\n    {\n      \"step_number\": 1,\n      \"task_name\": \"<original step text>\"\n    }\n  ],\n  \"ai_agent\": \"<assigned_agent>\"\n}\n\nDo not merge multiple steps\n\nDo not remove the steps array\n\nStrict Rules\n\nJSON only, no explanations or markdown\n\nAssign exactly one AI agent per task\n\nPreserve original text and step numbering\n\nNever merge or split steps beyond what is given\n\nOnly use recognized agents: RAG Orchestrator, General Questions Agent, Email Orchestrator\n\n✅ Example\n\nInput:\n\n{\n  \"tasks\": [\n    {\n      \"task_id\": \"97314\",\n      \"steps\": [\n        \"Step 1: Retrieve information about company policy on remote work\"\n      ]\n    },\n    {\n      \"task_id\": \"97315\",\n      \"steps\": [\n        \"Step 1: What is the Earth’s position in the solar system?\"\n      ]\n    }\n  ]\n}\n\nOutput:\n\n{\n  \"tasks\": [\n    {\n      \"task_id\": \"97314\",\n      \"steps\": [\n        {\n          \"step_number\": 1,\n          \"task_name\": \"Step 1: Retrieve information about company policy on remote work\"\n        }\n      ],\n      \"ai_agent\": \"RAG Orchestrator\"\n    },\n    {\n      \"task_id\": \"97315\",\n      \"steps\": [\n        {\n          \"step_number\": 1,\n          \"task_name\": \"Step 1: What is the Earth’s position in the solar system?\"\n        }\n      ],\n      \"ai_agent\": \"General Questions Agent\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -208,
+        16
+      ],
+      "id": "2353181e-49f6-41aa-8515-d50981aa761a",
+      "name": "Task Classification and Tool Identification"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "\n{\n  \"tasks\": [\n    {\n      \"task_id\": \"97314\",\n      \"steps\": [\n        \"Step 1: Retrieve information about the diameter of the Earth's surface\"\n      ]\n    }\n  ]\n}\n"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Task Classification and Tool Identification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Vertex Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Task Classification and Tool Identification",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "Call 'Email Orchestrator'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'RAG Orchestrator'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Payload for General Question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Payload for General Question": {
+      "main": [
+        [
+          {
+            "node": "Call 'General Question Agent'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Task Classification and Tool Identification": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "cc44f86c-a396-479c-a00d-cab24c85ca0e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "62726461b49b176cf1cc5c6f40ded7a70dacabee26b284e59974d37e6b78717e"
+  },
+  "id": "Kpt29opalApXlWrN",
+  "tags": []
+}
